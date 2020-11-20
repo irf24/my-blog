@@ -1,14 +1,16 @@
+/*----------required modules---------------*/
 const express = require("express");
 const parser = require("body-parser");
 const path = require("path");
-
 const mongoDB = require("mongodb");
 
-const app = express();
+const app = express(); //Server instance
 
+/*-------------middlewares-----------------*/
 app.use(parser.json());
-app.use(express.static(path.join(__dirname, "/build")));
+app.use(express.static(path.join(__dirname, "/build"))); //path for serving static files
 
+/*------------connect to mongodb------------*/
 const withDB = async (operation, res) => {
   try {
     const client = await mongoDB.MongoClient.connect(
@@ -21,17 +23,18 @@ const withDB = async (operation, res) => {
 
     const db = client.db("my-blog");
 
-    await operation(db);
+    await operation(db); // handling db related requests
 
     client.close();
   } catch (err) {
-    console.log(res.send(err));
+    res.send(err);
   }
 };
 
+/*---------------Get article request---------------*/
 app.get("/api/articles/:name", async (req, res) => {
   withDB(async (db) => {
-    const articleName = req.params.name;
+    const articleName = req.params.name; //getting url parameters
     const articleInfo = await db
       .collection("articles")
       .findOne({ name: articleName });
@@ -39,9 +42,10 @@ app.get("/api/articles/:name", async (req, res) => {
   }, res);
 });
 
+/*----------------Upvote Article-------------------*/
 app.post("/api/articles/:name/upvote", async (req, res) => {
   withDB(async (db) => {
-    const articleName = req.params.name;
+    const articleName = req.params.name; //getting url parameters
     const articleInfo = await db
       .collection("articles")
       .findOne({ name: articleName });
@@ -61,6 +65,7 @@ app.post("/api/articles/:name/upvote", async (req, res) => {
   }, res);
 });
 
+/*-----------------Add comments------------------*/
 app.post("/api/articles/:name/add-comment", async (req, res) => {
   withDB(async (db) => {
     const { username, text } = req.body;
@@ -84,10 +89,12 @@ app.post("/api/articles/:name/add-comment", async (req, res) => {
   }, res);
 });
 
+/*-----------Routing all other requests to index page---------*/
 app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname + "/build/index.html"));
 });
 
+/*------------assigning port----------------*/
 app.listen(8000, () => {
   console.log("server is running on port 8000");
 });
